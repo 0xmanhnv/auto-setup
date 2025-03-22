@@ -99,7 +99,6 @@ install_zsh() {
     fi
     # Change default shell to zsh
     echo "Y" | sudo chsh -s $(which zsh)
-    zsh
 }
 
 # Function to install Oh-My-Zsh
@@ -107,8 +106,8 @@ install_oh_my_zsh() {
     # Check if Oh-My-Zsh installed
     if [ ! -d "$HOME/.oh-my-zsh" ]; then
         echo "Installing Oh-My-Zsh"
-        # Install Oh-My-Zsh with unattended mode and keep existing .zshrc
-        sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc
+        # Install Oh-My-Zsh with unattended mode
+        RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     else
         echo -e "${GREEN}Oh-My-Zsh is already installed${NC}"
     fi
