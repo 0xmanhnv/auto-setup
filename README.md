@@ -1,64 +1,64 @@
 # Auto Setup Scripts
 
-Các script tự động cài đặt và cấu hình môi trường phát triển và công cụ pentest trên Linux.
+Scripts for automatically installing and configuring development environment and pentest tools on Linux.
 
-## Cấu trúc thư mục
+## Directory Structure
 
 ```
 .
-├── common.sh              # Script cài đặt các công cụ cơ bản
-├── install_pentest_tools.sh  # Script cài đặt công cụ pentest
-└── README.md             # File hướng dẫn này
+├── common.sh              # Script for installing basic tools
+├── install_pentest_tools.sh  # Script for installing pentest tools
+└── README.md             # This guide file
 ```
 
-## Tính năng
+## Features
 
 ### common.sh
-- Cài đặt và cấu hình ZSH với Oh-My-Zsh
-- Cài đặt các ngôn ngữ lập trình:
+- Install and configure ZSH with Oh-My-Zsh
+- Install programming languages:
   - Go
   - Rust
   - Python
   - Node.js
-- Cài đặt các thư viện:
+- Install libraries:
   - Yarn
   - pip
-- Tự động cấu hình PATH trong .zshrc
-- Hỗ trợ nhiều hệ điều hành Linux
+- Automatically configure PATH in .zshrc
+- Support for multiple Linux operating systems
 
 ### install_pentest_tools.sh
-- Kế thừa tất cả tính năng từ common.sh
-- Cài đặt thêm các công cụ pentest:
-  - Công cụ hệ thống:
-    - nmap: Quét mạng và bảo mật
-    - gobuster: Quét thư mục web
-    - dirb: Quét thư mục web
-    - nikto: Quét lỗ hổng web
-    - hydra: Cracking mật khẩu
-    - sqlmap: Khai thác SQL injection
-    - metasploit-framework: Framework khai thác lỗ hổng
-  - Công cụ Go:
+- Inherits all features from common.sh
+- Installs additional pentest tools:
+  - System tools:
+    - nmap: Network and security scanning
+    - gobuster: Web directory scanning
+    - dirb: Web directory scanning
+    - nikto: Web vulnerability scanning
+    - hydra: Password cracking
+    - sqlmap: SQL injection exploitation
+    - metasploit-framework: Vulnerability exploitation framework
+  - Go-based tools:
     - fff: Fast File Finder
-    - waybackurls: Tìm URL từ Wayback Machine
-    - assetfinder: Tìm subdomain
+    - waybackurls: Find URLs from Wayback Machine
+    - assetfinder: Find subdomains
     - gf: Pattern matching
-    - httprobe: Kiểm tra HTTP/HTTPS endpoints
+    - httprobe: Check HTTP/HTTPS endpoints
     - meg: Parallel HTTP requests
-    - qsreplace: Thay thế query string
-    - unfurl: Phân tích URL
-    - anew: Thêm dòng mới vào file
-    - gron: Làm việc với JSON
-  - Công cụ Python (trong môi trường ảo):
-    - subfinder: Tìm subdomain
-    - amass: Quét bảo mật
-    - dnsrecon: Phân tích DNS
-    - massdns: Quét DNS nhanh
-    - dnsvalidator: Kiểm tra DNS
-    - dnsgen: Tạo DNS
-    - altdns: Thay thế DNS
-    - masscan: Quét port nhanh
-    - ffuf: Fuzzing web
-    - nuclei: Quét lỗ hổng
+    - qsreplace: Query string replacement
+    - unfurl: URL analysis
+    - anew: Add new lines to file
+    - gron: Work with JSON
+  - Python-based tools (in virtual environment):
+    - subfinder: Find subdomains
+    - amass: Security scanning
+    - dnsrecon: DNS analysis
+    - massdns: Fast DNS scanning
+    - dnsvalidator: DNS validation
+    - dnsgen: DNS generation
+    - altdns: DNS alternation
+    - masscan: Fast port scanning
+    - ffuf: Web fuzzing
+    - nuclei: Vulnerability scanning
     - httpx: HTTP toolkit
     - subjack: Subdomain takeover
     - waybackpy: Wayback Machine API
@@ -66,83 +66,83 @@ Các script tự động cài đặt và cấu hình môi trường phát triể
     - gf-patterns: Pattern matching
     - hakrawler: Crawler
 
-## Yêu cầu hệ thống
+## System Requirements
 
-- Hệ điều hành Linux được hỗ trợ:
+- Supported Linux operating systems:
   - Ubuntu
   - Debian
   - Parrot OS
   - Kali Linux
   - Linux Mint
   - Elementary OS
-- Quyền sudo để cài đặt packages
-- Kết nối internet để tải packages
+- Sudo privileges for package installation
+- Internet connection for downloading packages
 
-## Cách sử dụng
+## Usage
 
-1. Tải các script:
+1. Download the scripts:
 ```bash
 git clone <repository-url>
 cd <repository-name>
 ```
 
-2. Cấp quyền thực thi:
+2. Make scripts executable:
 ```bash
 chmod +x common.sh install_pentest_tools.sh
 ```
 
-3. Chạy script:
+3. Run scripts:
 
-- Để cài đặt các công cụ cơ bản:
+- To install basic tools:
 ```bash
 sudo ./common.sh
 ```
 
-- Để cài đặt công cụ pentest (bao gồm cả công cụ cơ bản):
+- To install pentest tools (includes basic tools):
 ```bash
 sudo ./install_pentest_tools.sh
 ```
 
-4. Sau khi cài đặt:
+4. After installation:
 ```bash
-# Chuyển sang shell zsh
+# Switch to zsh shell
 zsh
 
-# Các công cụ Python sẽ tự động được kích hoạt trong môi trường ảo
-# Kiểm tra cài đặt:
-which fff  # Công cụ Go
-which subfinder  # Công cụ Python
+# Python tools will be automatically activated in virtual environment
+# Check installation:
+which fff  # Go tool
+which subfinder  # Python tool
 ```
 
-## Lưu ý quan trọng
+## Important Notes
 
-1. Script sẽ tự động:
-   - Phát hiện hệ điều hành
-   - Cài đặt các công cụ phù hợp
-   - Cấu hình PATH trong .zshrc
-   - Tạo môi trường ảo Python cho các công cụ pentest
-   - Áp dụng thay đổi vào shell hiện tại
+1. Scripts will automatically:
+   - Detect operating system
+   - Install appropriate tools
+   - Configure PATH in .zshrc
+   - Create Python virtual environment for pentest tools
+   - Apply changes to current shell
 
-2. Nếu một công cụ đã được cài đặt:
-   - Script sẽ hiển thị thông báo màu xanh
-   - Không cài đặt lại công cụ đó
+2. If a tool is already installed:
+   - Script will display green message
+   - Tool will not be reinstalled
 
-3. Nếu gặp lỗi:
-   - Kiểm tra quyền sudo
-   - Kiểm tra kết nối internet
-   - Kiểm tra log để biết chi tiết lỗi
-   - Đảm bảo đang sử dụng shell zsh
+3. If you encounter errors:
+   - Check sudo privileges
+   - Check internet connection
+   - Check logs for detailed error information
+   - Ensure you're using zsh shell
 
-## Đóng góp
+## Contributing
 
-Mọi đóng góp đều được chào đón! Vui lòng:
-1. Fork repository
-2. Tạo branch mới
-3. Commit thay đổi
-4. Push lên branch
-5. Tạo Pull Request
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a new branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-## Giấy phép
+## License
 
 MIT License
 
