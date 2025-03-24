@@ -241,6 +241,26 @@ install_go() {
     add_path_to_zshrc "Go system bin PATH" "export PATH=\"\$PATH:/usr/local/go/bin\""
 }
 
+# Function install curl
+install_curl() {
+    # Check if curl installed
+    if ! command -v curl &> /dev/null; then
+        show_info "Installing curl"
+        sudo $INSTALL_CMD curl
+    else
+        show_success "curl is already installed"
+    fi
+}
+
+# Function install wget
+install_wget() {
+    # Check if wget installed
+    if ! command -v wget &> /dev/null; then
+        show_info "Installing wget"
+        sudo $INSTALL_CMD wget
+    fi
+}
+
 # Function to install Rust
 install_rust() {
     # Install rust
@@ -442,6 +462,8 @@ main() {
     run_update
 
     # Install required packages
+    install_curl
+    install_wget
     install_zsh
     install_oh_my_zsh
     install_language
