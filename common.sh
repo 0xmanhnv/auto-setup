@@ -428,18 +428,6 @@ install_library() {
 # Main function
 # Modify main function to handle arguments
 main() {
-    # Handle command line arguments
-    case "$1" in
-        -v|--version)
-            show_version
-            exit 0
-            ;;
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-    esac
-
     # Original main function code
     detect_os
     # check if os is supported
@@ -468,4 +456,17 @@ main() {
 
 # ================================ MAIN FUNCTION ================================
 # Run the main function
-main "$@"
+# Handle command line arguments
+case "$1" in
+    -v|--version)
+        show_version
+        exit 0
+        ;;
+    -h|--help)
+        show_help
+        exit 0
+        ;;
+    *)
+        main "$@"
+        ;;
+esac
