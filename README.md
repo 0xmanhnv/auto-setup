@@ -1,70 +1,39 @@
 # Auto Setup Scripts
 
-Scripts for automatically installing and configuring development environment and pentest tools on Linux.
+Scripts for automatically installing and configuring development environment on Linux operating systems.
 
 ## Directory Structure
 
 ```
 .
-├── common.sh              # Script for installing basic tools
-├── install_pentest_tools.sh  # Script for installing pentest tools
-└── README.md             # This guide file
+├── common.sh        # Script for installing basic development tools
+└── README.md        # Documentation
 ```
 
 ## Features
 
 ### common.sh
 - Install and configure ZSH with Oh-My-Zsh
+- Install and configure useful Oh-My-Zsh plugins:
+  - zsh-syntax-highlighting
+  - zsh-autosuggestions
+  - zsh-completions
+  - zsh-history-substring-search
 - Install programming languages:
   - Go
   - Rust
   - Python
   - Node.js
-- Install libraries:
+- Install package managers:
   - Yarn
   - pip
-- Automatically configure PATH in .zshrc
-- Support for multiple Linux operating systems
-
-### install_pentest_tools.sh
-- Inherits all features from common.sh
-- Installs additional pentest tools:
-  - System tools:
-    - nmap: Network and security scanning
-    - gobuster: Web directory scanning
-    - dirb: Web directory scanning
-    - nikto: Web vulnerability scanning
-    - hydra: Password cracking
-    - sqlmap: SQL injection exploitation
-    - metasploit-framework: Vulnerability exploitation framework
-  - Go-based tools:
-    - fff: Fast File Finder
-    - waybackurls: Find URLs from Wayback Machine
-    - assetfinder: Find subdomains
-    - gf: Pattern matching
-    - httprobe: Check HTTP/HTTPS endpoints
-    - meg: Parallel HTTP requests
-    - qsreplace: Query string replacement
-    - unfurl: URL analysis
-    - anew: Add new lines to file
-    - gron: Work with JSON
-  - Python-based tools (in virtual environment):
-    - subfinder: Find subdomains
-    - amass: Security scanning
-    - dnsrecon: DNS analysis
-    - massdns: Fast DNS scanning
-    - dnsvalidator: DNS validation
-    - dnsgen: DNS generation
-    - altdns: DNS alternation
-    - masscan: Fast port scanning
-    - ffuf: Web fuzzing
-    - nuclei: Vulnerability scanning
-    - httpx: HTTP toolkit
-    - subjack: Subdomain takeover
-    - waybackpy: Wayback Machine API
-    - dalfox: XSS scanner
-    - gf-patterns: Pattern matching
-    - hakrawler: Crawler
+- Install essential tools:
+  - Git
+  - curl
+  - wget
+- Automatically configure PATH in `.zshrc`
+- Set timezone (default: Asia/Ho_Chi_Minh)
+- Support for multiple Linux distributions
 
 ## System Requirements
 
@@ -75,84 +44,88 @@ Scripts for automatically installing and configuring development environment and
   - Kali Linux
   - Linux Mint
   - Elementary OS
-- Sudo privileges for package installation
-- Internet connection for downloading packages
+- Internet connection
+- Regular user with sudo privileges
 
 ## Usage
 
-1. Download the scripts:
-```bash
-git clone <repository-url>
-cd <repository-name>
-```
+1. Download the script:
+   ```bash
+   curl -O https://raw.githubusercontent.com/yourusername/auto-setup/main/common.sh
+   ```
+   or
+   ```bash
+   wget https://raw.githubusercontent.com/yourusername/auto-setup/main/common.sh
+   ```
 
-2. Make scripts executable:
-```bash
-chmod +x common.sh install_pentest_tools.sh
-```
+2. Make the script executable:
+   ```bash
+   chmod +x common.sh
+   ```
 
-3. Run scripts:
-
-- To install basic tools:
-```bash
-sudo ./common.sh
-```
-
-- To install pentest tools (includes basic tools):
-```bash
-sudo ./install_pentest_tools.sh
-```
+3. Run the script:
+   ```bash
+   ./common.sh
+   ```
 
 4. After installation:
-```bash
-# Switch to zsh shell
-zsh
+   - Either run `zsh` to start using your new shell
+   - Or restart your terminal to apply all changes
 
-# Python tools will be automatically activated in virtual environment
-# Check installation:
-which fff  # Go tool
-which subfinder  # Python tool
-```
+## What Happens During Installation
+
+The script will:
+1. Detect your operating system and package manager
+2. Update package repositories
+3. Set your timezone
+4. Install essential tools (Git, curl, wget)
+5. Install ZSH and make it your default shell
+6. Install Oh-My-Zsh with useful plugins
+7. Install Go, Rust, Python, and Node.js
+8. Install Yarn and pip package managers
+9. Configure PATH environment variables in `.zshrc`
 
 ## Important Notes
 
-1. Scripts will automatically:
-   - Detect operating system
-   - Install appropriate tools
-   - Configure PATH in .zshrc
-   - Create Python virtual environment for pentest tools
-   - Apply changes to current shell
+- The script should be run as a regular user (not as root)
+- The script will prompt for your password when sudo is required
+- The script checks if components are already installed before installing them
+- Your existing `.zshrc` file will be backed up if changes are needed
+- The script will show detailed progress and success/error messages
 
-2. If a tool is already installed:
-   - Script will display green message
-   - Tool will not be reinstalled
+## Command Line Options
 
-3. If you encounter errors:
-   - Check sudo privileges
-   - Check internet connection
-   - Check logs for detailed error information
-   - Ensure you're using zsh shell
+- `-v, --version`: Show script version
+- `-h, --help`: Show help message
+
+## Troubleshooting
+
+- If you encounter "git is not installed" error:
+  - The script should automatically install Git
+  - If not, install Git manually before running the script:
+    ```bash
+    sudo apt update && sudo apt install git
+    ```
+
+- If you encounter issues changing your default shell, try:
+  ```bash
+  chsh -s $(which zsh)
+  ```
+
+- If Oh-My-Zsh plugins are not working, ensure your `.zshrc` includes them:
+  ```bash
+  plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-completions zsh-history-substring-search)
+  ```
+
+- If PATH settings are not applied, restart your terminal or run:
+  ```bash
+  source ~/.zshrc
+  ```
 
 ## Contributing
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a new branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT License
-
-```bash
-sudo apt update && sudo apt install zsh
-chsh -s $(which zsh)
-```
-
-- Install Oh-My-Zsh
-
-```bash
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
+This project is licensed under the MIT License.

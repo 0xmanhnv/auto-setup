@@ -151,8 +151,15 @@ add_path_to_zshrc() {
     
     # Check if PATH already exists
     if ! grep -Fq "$path_export" "$zshrc_file"; then
-        # Add newline and PATH after the first PATH export line
-        sed -i '/# export PATH=/a\# '"$path_comment"'\n'"$path_export" "$zshrc_file"
+        # Check if there's already a PATH export line
+        if grep -q "export PATH" "$zshrc_file"; then
+            # Add newline and PATH after the first PATH export line
+            sed -i '/export PATH/a\# '"$path_comment"'\n'"$path_export" "$zshrc_file"
+        else
+            # No PATH export found, append to the end of file
+            echo -e "\n# $path_comment\n$path_export" >> "$zshrc_file"
+        fi
+        show_success "Added $path_comment to .zshrc"
     else
         show_info "$path_comment already configured in .zshrc"
     fi
@@ -206,23 +213,102 @@ install_zsh() {
         # Install zsh based on package manager
         run_update
         sudo $INSTALL_CMD zsh
+        show_success "zsh installed successfully"
     else
         show_success "zsh is already installed"
     fi
+
     # Change default shell to zsh
-    echo "Y" | sudo chsh -s $(which zsh)
+    show_info "Changing default shell to zsh"
+    if [ "$SHELL" != "$(which zsh)" ]; then
+        sudo chsh -s $(which zsh) $USER
+        show_success "Default shell changed to zsh"
+    else
+        show_success "zsh is already the default shell"
+    fi
+}
+
+# Function to configure Oh-My-Zsh
+configure_oh_my_zsh() {
+    local zshrc_file="$HOME/.zshrc"
+    
+    # Backup existing .zshrc if it's not a symlink
+    if [ -f "$zshrc_file" ] && [ ! -L "$zshrc_file" ]; then
+        cp "$zshrc_file" "$zshrc_file.backup_$(date +%Y%m%d_%H%M%S)"
+        show_info "Backed up existing .zshrc file"
+    fi
+    
+    # Check if plugins are configured
+    if ! grep -q "plugins=(git" "$zshrc_file"; then
+        show_info "Configuring Oh-My-Zsh plugins"
+        # Find the plugins line and replace it
+        if grep -q "plugins=" "$zshrc_file"; then
+            sed -i 's/plugins=(git)/plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-completions zsh-history-substring-search)/' "$zshrc_file"
+        else
+            # Add plugins if not found
+            echo -e "\n# Oh-My-Zsh plugins\nplugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-completions zsh-history-substring-search)" >> "$zshrc_file"
+        fi
+        show_success "Oh-My-Zsh plugins configured"
+    else
+        # Check if all plugins are included
+        if ! grep -q "plugins=.*zsh-syntax-highlighting" "$zshrc_file" || \
+           ! grep -q "plugins=.*zsh-autosuggestions" "$zshrc_file" || \
+           ! grep -q "plugins=.*zsh-completions" "$zshrc_file" || \
+           ! grep -q "plugins=.*zsh-history-substring-search" "$zshrc_file"; then
+            # Update plugins line to include all plugins
+            sed -i 's/plugins=([^)]*)/plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-completions zsh-history-substring-search)/' "$zshrc_file"
+            show_success "Updated Oh-My-Zsh plugins configuration"
+        else
+            show_success "Oh-My-Zsh plugins already configured"
+        fi
+    fi
+}
+
+# Function to install Git
+install_git() {
+    # Check if Git is installed
+    if ! command -v git &> /dev/null; then
+        show_info "Installing Git (required for Oh-My-Zsh)"
+        run_update
+        sudo $INSTALL_CMD git
+        
+        if [ $? -ne 0 ]; then
+            show_error "Failed to install Git"
+            return 1
+        fi
+        show_success "Git installed successfully"
+    else
+        show_success "Git is already installed"
+    fi
+    return 0
 }
 
 # Function to install Oh-My-Zsh
 install_oh_my_zsh() {
+    # First ensure Git is installed
+    install_git || { show_error "Git is required for Oh-My-Zsh installation"; return 1; }
+    
     local oh_my_zsh_dir="$HOME/.oh-my-zsh"
     local custom_dir="$oh_my_zsh_dir/custom/plugins"
+    local zshrc_file="$HOME/.zshrc"
+    
+    # Create basic .zshrc file if it doesn't exist
+    if [ ! -f "$zshrc_file" ]; then
+        echo "# Basic .zshrc created by setup script" > "$zshrc_file"
+        show_info "Created basic .zshrc file"
+    fi
     
     # Check if Oh-My-Zsh installed
     if [ ! -d "$oh_my_zsh_dir" ]; then
         show_info "Installing Oh-My-Zsh"
         # Install Oh-My-Zsh with unattended mode
         RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+        
+        if [ $? -ne 0 ]; then
+            show_error "Failed to install Oh-My-Zsh"
+            return 1
+        fi
+        show_success "Oh-My-Zsh installed successfully"
     else
         show_success "Oh-My-Zsh is already installed"
     fi
@@ -239,16 +325,27 @@ install_oh_my_zsh() {
         if [ ! -d "$plugin_dir" ]; then
             show_info "Installing $plugin_name"
             git clone "$plugin_url" "$plugin_dir"
+            if [ $? -ne 0 ]; then
+                show_error "Failed to install $plugin_name"
+                return 1
+            fi
+            show_success "$plugin_name installed successfully"
         else
             show_success "$plugin_name is already installed"
         fi
+        return 0
     }
 
     # Install plugins
-    install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
-    install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions.git"
-    install_plugin "zsh-completions" "https://github.com/zsh-users/zsh-completions.git"
-    install_plugin "zsh-history-substring-search" "https://github.com/zsh-users/zsh-history-substring-search.git"
+    install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git" || return 1
+    install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions.git" || return 1
+    install_plugin "zsh-completions" "https://github.com/zsh-users/zsh-completions.git" || return 1
+    install_plugin "zsh-history-substring-search" "https://github.com/zsh-users/zsh-history-substring-search.git" || return 1
+    
+    # Configure Oh-My-Zsh
+    configure_oh_my_zsh
+    
+    return 0
 }
 
 # Function to install Go
@@ -345,16 +442,26 @@ install_go_library() {
         install_go
     fi
 
-    # echo with name package not full path, example: "gobuster" not "github.com/OJ/gobuster/v3@latest"
-    package_name=$(echo $1 | rev | cut -d'/' -f1 | rev)
-    version=$(echo $1 | rev | cut -d'@' -f1 | rev)
+    # Extract package name and version correctly
+    if [[ "$1" == *"@"* ]]; then
+        package_name=$(echo "$1" | rev | cut -d'/' -f1 | cut -d'@' -f2 | rev)
+        version=$(echo "$1" | rev | cut -d'@' -f1 | rev)
+    else
+        package_name=$(echo "$1" | rev | cut -d'/' -f1 | rev)
+        version="latest"
+    fi
 
-    # Install library go
-    # Check if library go installed
-    if ! command -v $package_name &> /dev/null; then
-        
+    # Check if binary exists in PATH
+    if ! command -v "$package_name" &> /dev/null; then
         show_info "Installing $package_name:$version"
-        go install $1
+        go install "$1"
+        
+        # Check if installation was successful
+        if [ $? -ne 0 ]; then
+            show_error "Failed to install $package_name"
+            return 1
+        fi
+        show_success "$package_name installed successfully"
     else
         show_success "$package_name:$version is already installed"
     fi
@@ -404,11 +511,22 @@ install_node_library() {
         show_info "Installing Node.js"
         install_node
     fi
+
+    # Create .node directory if it doesn't exist
+    mkdir -p "$HOME/.node"
+
     # Install library node
     # Check if library node installed
     if ! command -v $1 &> /dev/null; then
         show_info "Installing $1"
-        sudo npm install -g $1
+        # Install package locally for current user
+        npm install -g --prefix ~/.node $1
+        show_success "$1 installed successfully"
+        
+        # Add Node PATH to .zshrc if not already added
+        if ! grep -q "\$HOME/.node/bin" "$HOME/.zshrc"; then
+            add_path_to_zshrc "Node local bin PATH" "export PATH=\"\$PATH:\$HOME/.node/bin\""
+        fi
     else
         show_success "$1 is already installed"
     fi
@@ -417,26 +535,53 @@ install_node_library() {
 # Install package manager
 install_package_manager() {
     # Install yarn
-    # Check if yarn installed and supported os
     if ! command -v yarn &> /dev/null; then
         show_info "Installing Yarn"
-        install_node_library "yarn"
+        if command -v npm &> /dev/null; then
+            # Create .yarn directory if it doesn't exist
+            mkdir -p "$HOME/.yarn"
+            npm install -g --prefix ~/.node yarn
+            if [ $? -ne 0 ]; then
+                show_error "Failed to install yarn using npm"
+                return 1
+            fi
+            show_success "Yarn installed successfully"
+        else
+            show_error "npm is required to install Yarn"
+            return 1
+        fi
     else
-        show_success "yarn is already installed"
+        show_success "Yarn is already installed"
     fi
+    
     # Add Yarn PATH to .zshrc
     add_path_to_zshrc "Yarn PATH" "export PATH=\"\$PATH:\$HOME/.yarn/bin\""
 
-    # Install pip
-    # Check if pip installed and supported os
-    if ! command -v pip &> /dev/null; then
+    # Install pip if it's not already installed
+    if ! command -v pip &> /dev/null && ! command -v pip3 &> /dev/null; then
         show_info "Installing pip"
-        install_python_library "pip"
+        if command -v python3 &> /dev/null; then
+            # Download and install pip
+            curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+            python3 /tmp/get-pip.py --user
+            if [ $? -ne 0 ]; then
+                show_error "Failed to install pip"
+                return 1
+            fi
+            rm /tmp/get-pip.py
+            show_success "pip installed successfully"
+        else
+            show_error "Python3 is required to install pip"
+            return 1
+        fi
     else
         show_success "pip is already installed"
     fi
+    
     # Add Pip PATH to .zshrc
     add_path_to_zshrc "Pip PATH" "export PATH=\"\$PATH:\$HOME/.local/bin\""
+    
+    return 0
 }
 
 
@@ -467,28 +612,60 @@ main() {
         show_error "Unsupported OS"
         exit 1
     fi
+
+    # Check if running with sudo
+    # if [ "$EUID" -eq 0 ]; then 
+    #     show_error "Please do not run this script as root"
+    #     show_info "Run this script without sudo: ./$(basename $0)"
+    #     exit 1
+    # fi
+
+    # Show start message
+    show_info "Starting setup on $OS $VERSION..."
+    
+    # Record start time
+    local start_time=$(date +%s)
+
     bootstrap
 
     # Install required packages
-    install_curl
-    install_wget
-    install_zsh
-    install_oh_my_zsh
-    install_language
-    install_package_manager
+    show_info "Installing required packages..."
+    install_curl || { show_error "Failed to install curl"; exit 1; }
+    install_wget || { show_error "Failed to install wget"; exit 1; }
+    install_git || { show_error "Failed to install git"; exit 1; }
+    install_zsh || { show_error "Failed to install zsh"; exit 1; }
+    install_oh_my_zsh || { show_error "Failed to install Oh-My-Zsh"; exit 1; }
+    
+    show_info "Installing programming languages..."
+    install_language || { show_error "Failed to install programming languages"; exit 1; }
+    
+    show_info "Installing package managers..."
+    install_package_manager || { show_error "Failed to install package managers"; exit 1; }
 
     # Check exists folder /usr/sbin in .zshrc
     if ! grep -q "/usr/sbin" "$HOME/.zshrc"; then
         show_info "Adding /usr/sbin to PATH"
-        add_path_to_zshrc "usr/sbin PATH" "export PATH=\"\$PATH:/usr/sbin\""
+        add_path_to_zshrc "usr/sbin PATH" "export PATH=\"\$PATH:/usr/sbin\"" || { show_error "Failed to add /usr/sbin to PATH"; exit 1; }
     else
-        show_success "/usr/sbin folder already exists"
+        show_success "/usr/sbin folder already exists in PATH"
     fi
 
+    # Record end time and calculate duration
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+    local minutes=$((duration / 60))
+    local seconds=$((duration % 60))
+    
     # Apply changes to current shell
-    show_info "Setup completed successfully!"
-    show_info "Please run 'zsh' to start using your new shell configuration."
-    show_info "Or restart your terminal to apply all changes."
+    show_info "==========================================="
+    show_success "Setup completed successfully in ${minutes}m ${seconds}s!"
+    show_info "-------------------------------------------"
+    show_info "What to do now:"
+    show_info "1. Run 'zsh' to start using your new shell configuration."
+    show_info "2. Or restart your terminal to apply all changes."
+    show_info "-------------------------------------------"
+    show_info "Your development environment is ready!"
+    show_info "==========================================="
 }
 
 # ================================ END FUNCTIONS ================================
