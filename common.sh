@@ -408,7 +408,7 @@ install_node_library() {
     # Check if library node installed
     if ! command -v $1 &> /dev/null; then
         show_info "Installing $1"
-        npm install -g $1
+        sudo npm install -g $1
     else
         show_success "$1 is already installed"
     fi
