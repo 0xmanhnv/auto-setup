@@ -22,6 +22,10 @@ SUPPORTED_OS=(
 )
 # Define version
 VERSION="1.0.0"
+
+# Timezone
+TIMEZONE="Asia/Ho_Chi_Minh"
+
 # ================================ END VARIABLES ================================
 
 # ================================ FUNCTIONS ================================
@@ -124,11 +128,17 @@ run_update() {
 add_path_to_zshrc() {
     local path_comment="$1"
     local path_export="$2"
+    local zshrc_file="$HOME/.zshrc"
+    
+    # Create .zshrc if it doesn't exist
+    if [ ! -f "$zshrc_file" ]; then
+        touch "$zshrc_file"
+    fi
     
     # Check if PATH already exists
-    if ! grep -Fq "$path_export" ~/.zshrc; then
+    if ! grep -Fq "$path_export" "$zshrc_file"; then
         # Add newline and PATH after the first PATH export line
-        sed -i '/# export PATH=/a\# '"$path_comment"'\n'"$path_export" ~/.zshrc
+        sed -i '/# export PATH=/a\# '"$path_comment"'\n'"$path_export" "$zshrc_file"
     else
         show_info "$path_comment already configured in .zshrc"
     fi
@@ -284,15 +294,19 @@ install_go_library() {
         show_info "Installing Golang"
         install_go
     fi
+
+    # echo with name package not full path, example: "gobuster" not "github.com/OJ/gobuster/v3@latest"
+    package_name=$(echo $1 | rev | cut -d'/' -f1 | rev)
+    version=$(echo $1 | rev | cut -d'@' -f1 | rev)
+
     # Install library go
     # Check if library go installed
-    if ! command -v $1 &> /dev/null; then
-        # echo with name package not full path, example: "gobuster" not "github.com/OJ/gobuster/v3@latest"
-        package_name=$(echo $1 | rev | cut -d'/' -f1 | rev)
-        show_info "Installing $package_name"
+    if ! command -v $package_name &> /dev/null; then
+        
+        show_info "Installing $package_name:$version"
         go install $1
     else
-        show_success "$1 is already installed"
+        show_success "$package_name:$version is already installed"
     fi
 }
 
@@ -430,6 +444,9 @@ main() {
         show_error "Unsupported OS"
         exit 1
     fi
+    # Set timezone
+    sudo timedatectl set-timezone $TIMEZONE
+    
     run_update
 
     # Install required packages
