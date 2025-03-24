@@ -170,6 +170,29 @@ is_supported_os() {
 }
 
 # ================================ INSTALL FUNCTIONS ================================
+# Function to install library multiple language
+# Example: install_library "go" "gobuster"
+install_library() {
+    # Install library multiple language
+    case $1 in
+        "go")
+            install_go_library $2
+            ;;
+        "rust")
+            install_rust_library $2
+            ;;
+        "python")
+            install_python_library $2
+            ;;
+        "node")
+            install_node_library $2
+            ;;
+        "all")
+            show_error "Please install language first"
+            exit 1
+            ;;
+    esac
+}
 # Function to install zsh
 # Example: install_zsh
 install_zsh() {
@@ -421,30 +444,6 @@ install_language() {
     install_node
 }
 
-# Function to install library multiple language
-# Example: install_library "go" "gobuster"
-install_library() {
-    # Install library multiple language
-    case $1 in
-        "go")
-            install_go_library $2
-            ;;
-        "rust")
-            install_rust_library $2
-            ;;
-        "python")
-            install_python_library $2
-            ;;
-        "node")
-            install_node_library $2
-            ;;
-        "all")
-            show_error "Please install language first"
-            exit 1
-            ;;
-    esac
-}
-
 # Main function
 # Modify main function to handle arguments
 main() {
@@ -470,8 +469,9 @@ main() {
     install_package_manager
 
     # Apply changes to current shell
-    show_info "Applying changes to current shell..."
-    source ~/.zshrc
+    show_info "Setup completed successfully!"
+    show_info "Please run 'zsh' to start using your new shell configuration."
+    show_info "Or restart your terminal to apply all changes."
 }
 
 # ================================ END FUNCTIONS ================================
