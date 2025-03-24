@@ -444,6 +444,23 @@ install_language() {
     install_node
 }
 
+# Function bootstrap
+bootstrap() {
+    # Check /usr/sbin in PATH
+    if ! command -v /usr/sbin &> /dev/null; then
+        show_info "Adding /usr/sbin to PATH"
+        add_path_to_zshrc "usr/sbin PATH" "export PATH=\"\$PATH:/usr/sbin\""
+    else
+        show_success "/usr/sbin is already in PATH"
+    fi
+
+    # Set timezone
+    set_timezone
+
+    # Run update
+    run_update
+}
+
 # Main function
 # Modify main function to handle arguments
 main() {
@@ -454,11 +471,7 @@ main() {
         show_error "Unsupported OS"
         exit 1
     fi
-    
-    # Set timezone
-    set_timezone
-    
-    run_update
+    bootstrap
 
     # Install required packages
     install_curl
