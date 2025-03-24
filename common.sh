@@ -175,50 +175,40 @@ install_zsh() {
 
 # Function to install Oh-My-Zsh
 install_oh_my_zsh() {
+    local oh_my_zsh_dir="$HOME/.oh-my-zsh"
+    local custom_dir="$oh_my_zsh_dir/custom/plugins"
+    
     # Check if Oh-My-Zsh installed
-    if [ ! -d "$HOME/.oh-my-zsh" ]; then
-        echo "Installing Oh-My-Zsh"
+    if [ ! -d "$oh_my_zsh_dir" ]; then
+        show_info "Installing Oh-My-Zsh"
         # Install Oh-My-Zsh with unattended mode
         RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     else
-        echo -e "${GREEN}Oh-My-Zsh is already installed${NC}"
+        show_success "Oh-My-Zsh is already installed"
     fi
 
-    # Check if zsh-syntax-highlighting installed
-    if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" ]; then
-        echo "Installing zsh-syntax-highlighting"
-        # Install zsh-syntax-highlighting
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-    else
-        echo -e "${GREEN}zsh-syntax-highlighting is already installed${NC}"
-    fi
+    # Create custom plugins directory if it doesn't exist
+    mkdir -p "$custom_dir"
 
-    # Check if zsh-autosuggestions installed
-    if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
-        echo "Installing zsh-autosuggestions"
-        # Install zsh-autosuggestions
-        git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-    else
-        echo -e "${GREEN}zsh-autosuggestions is already installed${NC}"
-    fi
+    # Function to install plugin
+    install_plugin() {
+        local plugin_name="$1"
+        local plugin_url="$2"
+        local plugin_dir="$custom_dir/$plugin_name"
+        
+        if [ ! -d "$plugin_dir" ]; then
+            show_info "Installing $plugin_name"
+            git clone "$plugin_url" "$plugin_dir"
+        else
+            show_success "$plugin_name is already installed"
+        fi
+    }
 
-    # Check if zsh-completions installed
-    if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-completions" ]; then
-        echo "Installing zsh-completions"
-        # Install zsh-completions
-        git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-completions
-    else
-        echo -e "${GREEN}zsh-completions is already installed${NC}"
-    fi
-
-    # Check if zsh-history-substring-search installed
-    if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search" ]; then
-        echo "Installing zsh-history-substring-search"
-        # Install zsh-history-substring-search
-        git clone https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search
-    else
-        echo -e "${GREEN}zsh-history-substring-search is already installed${NC}"
-    fi
+    # Install plugins
+    install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+    install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions.git"
+    install_plugin "zsh-completions" "https://github.com/zsh-users/zsh-completions.git"
+    install_plugin "zsh-history-substring-search" "https://github.com/zsh-users/zsh-history-substring-search.git"
 }
 
 # Function to install Go
