@@ -84,7 +84,7 @@ detect_os() {
         OS=$(echo "$OS" | tr '[:upper:]' '[:lower:]')
         # Handle special cases
         case $OS in
-            "parrot security")
+            "parrot security"|"parrot os")
                 OS="parrot os"
                 ;;
             "kali gnu/linux")
