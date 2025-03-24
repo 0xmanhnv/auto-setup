@@ -119,6 +119,24 @@ The script will:
 
 ## Troubleshooting
 
+- If you encounter duplicate PATH entries in your `.zshrc` file:
+  - The script now includes automatic cleanup of duplicate entries
+  - You can manually trigger the cleanup by running the script again
+  - Or manually edit your `.zshrc` file to remove duplicate entries
+  - A backup of your original `.zshrc` is created before any changes
+
+- If you encounter network connection issues during installation:
+  - The script will try to use alternative methods for installing components
+  - For pip installation issues, you can manually install it later using:
+    ```bash
+    sudo apt update && sudo apt install python3-pip  # For Debian/Ubuntu
+    ```
+  - If you're behind a corporate firewall or proxy, configure your proxy settings:
+    ```bash
+    export http_proxy="http://proxy.example.com:port"
+    export https_proxy="http://proxy.example.com:port"
+    ```
+
 - If you encounter "git is not installed" error:
   - The script should automatically install Git
   - If not, install Git manually before running the script:

@@ -182,19 +182,19 @@ add_path_to_zshrc() {
         touch "$zshrc_file"
     fi
     
-    # Check if PATH already exists
-    if ! grep -Fq "$path_export" "$zshrc_file"; then
-        # Check if there's already a PATH export line
-        if grep -q "export PATH" "$zshrc_file"; then
-            # Add newline and PATH after the first PATH export line
-            sed -i '/export PATH/a\# '"$path_comment"'\n'"$path_export" "$zshrc_file"
-        else
-            # No PATH export found, append to the end of file
-            echo -e "\n# $path_comment\n$path_export" >> "$zshrc_file"
-        fi
-        show_success "Added $path_comment to .zshrc"
-    else
+    # Extract the actual path value from the export statement
+    local path_value=$(echo "$path_export" | sed -n 's/.*PATH="\$PATH:\(.*\)".*/\1/p')
+    
+    # Check if PATH already exists anywhere in the file
+    if grep -Fq "$path_export" "$zshrc_file"; then
         show_info "$path_comment already configured in .zshrc"
+    elif grep -q "$path_value" "$zshrc_file"; then
+        # If the path value exists but in a different format, still consider it as configured
+        show_info "$path_comment appears to be already in .zshrc (different format)"
+    else
+        # Append to the end of file instead of trying to insert after existing PATH entries
+        echo -e "\n# $path_comment\n$path_export" >> "$zshrc_file"
+        show_success "Added $path_comment to .zshrc"
     fi
 }
 
@@ -245,7 +245,7 @@ install_zsh() {
         show_info "Installing zsh"
         # Install zsh based on package manager
         run_update
-        run_with_sudo "$INSTALL_CMD zsh"
+        run_with_sudo "$INSTALL_CMD zsh -y"
         show_success "zsh installed successfully"
     else
         show_success "zsh is already installed"
@@ -335,7 +335,7 @@ install_oh_my_zsh() {
     if [ ! -d "$oh_my_zsh_dir" ]; then
         show_info "Installing Oh-My-Zsh"
         # Install Oh-My-Zsh with unattended mode
-        RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+        RUNZSH=no CHSH=no KEEP_ZSHRC=no sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
         
         if [ $? -ne 0 ]; then
             show_error "Failed to install Oh-My-Zsh"
@@ -594,15 +594,50 @@ install_package_manager() {
     if ! command -v pip &> /dev/null && ! command -v pip3 &> /dev/null; then
         show_info "Installing pip"
         if command -v python3 &> /dev/null; then
-            # Download and install pip
-            curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
-            python3 /tmp/get-pip.py --user
-            if [ $? -ne 0 ]; then
-                show_error "Failed to install pip"
-                return 1
+            # First try: Use package manager to install pip
+            show_info "Trying to install pip using package manager..."
+            run_with_sudo "$INSTALL_CMD python3-pip"
+            
+            # Check if pip was installed successfully
+            if command -v pip3 &> /dev/null || command -v pip &> /dev/null; then
+                show_success "pip installed successfully using package manager"
+            else
+                # Second try: Use get-pip.py
+                show_info "Trying to install pip using get-pip.py..."
+                local max_retries=3
+                local retry_count=0
+                local success=false
+
+                while [ $retry_count -lt $max_retries ] && [ "$success" = false ]; do
+                    # Try multiple mirror URLs
+                    for url in "https://bootstrap.pypa.io/get-pip.py" "https://raw.githubusercontent.com/pypa/get-pip/main/public/get-pip.py"; do
+                        show_info "Trying to download get-pip.py from $url (attempt $(($retry_count + 1))/$max_retries)"
+                        if curl -s -S -f -o /tmp/get-pip.py "$url"; then
+                            if python3 /tmp/get-pip.py --user; then
+                                rm /tmp/get-pip.py
+                                show_success "pip installed successfully using get-pip.py"
+                                success=true
+                                break
+                            fi
+                        fi
+                    done
+
+                    if [ "$success" = false ]; then
+                        retry_count=$((retry_count + 1))
+                        if [ $retry_count -lt $max_retries ]; then
+                            show_info "Download failed, retrying in 3 seconds..."
+                            sleep 3
+                        fi
+                    fi
+                done
+
+                if [ "$success" = false ]; then
+                    show_error "Failed to install pip after multiple attempts"
+                    show_info "You can manually install pip later using:"
+                    show_info "sudo apt-get install python3-pip  # For Debian/Ubuntu"
+                    # Continue with the script despite pip installation failure
+                fi
             fi
-            rm /tmp/get-pip.py
-            show_success "pip installed successfully"
         else
             show_error "Python3 is required to install pip"
             return 1
@@ -667,6 +702,9 @@ main() {
     # Record start time
     local start_time=$(date +%s)
 
+    # Clean up any existing duplicate PATH entries before starting
+    cleanup_zshrc_paths
+
     bootstrap
 
     # Install required packages
@@ -681,15 +719,19 @@ main() {
     install_language || { show_error "Failed to install programming languages"; exit 1; }
     
     show_info "Installing package managers..."
-    install_package_manager || { show_error "Failed to install package managers"; exit 1; }
-
-    # Check exists folder /usr/sbin in .zshrc
-    if ! grep -q "/usr/sbin" "$HOME/.zshrc"; then
-        show_info "Adding /usr/sbin to PATH"
-        add_path_to_zshrc "usr/sbin PATH" "export PATH=\"\$PATH:/usr/sbin\"" || { show_error "Failed to add /usr/sbin to PATH"; exit 1; }
-    else
-        show_success "/usr/sbin folder already exists in PATH"
+    # Try to install package managers but continue even if it fails
+    if ! install_package_manager; then
+        show_error "Some package managers could not be installed, but continuing..."
     fi
+
+    # Add /usr/sbin to PATH if needed
+    add_path_to_zshrc "usr/sbin PATH" "export PATH=\"\$PATH:/usr/sbin\"" || { 
+        show_error "Failed to add /usr/sbin to PATH"; 
+        exit 1; 
+    }
+
+    # Final cleanup to ensure no duplicates were added
+    cleanup_zshrc_paths
 
     # Record end time and calculate duration
     local end_time=$(date +%s)
@@ -727,3 +769,60 @@ case "$1" in
         main "$@"
         ;;
 esac
+
+# Function to clean up duplicate PATH entries in .zshrc
+cleanup_zshrc_paths() {
+    local zshrc_file="$HOME/.zshrc"
+    
+    if [ ! -f "$zshrc_file" ]; then
+        return 0
+    fi
+    
+    show_info "Checking for duplicate PATH entries in .zshrc..."
+    
+    # Create a backup first
+    cp "$zshrc_file" "$zshrc_file.backup_$(date +%Y%m%d_%H%M%S)"
+    
+    # Temp file for processing
+    local temp_file=$(mktemp)
+    
+    # Process the file using a simpler approach that works across most shells
+    # First, copy any lines before the first PATH export
+    awk '!/export PATH/ {print} /export PATH/ {exit}' "$zshrc_file" > "$temp_file"
+    
+    # Then extract and deduplicate PATH entries
+    grep "export PATH" "$zshrc_file" | sort | uniq > /tmp/unique_paths.txt
+    
+    # For each unique PATH entry, find its comment and add both
+    while read -r path_line; do
+        # Extract the path part to use for matching
+        path_part=$(echo "$path_line" | grep -o ':\$HOME/[^"]*' || echo "$path_line" | grep -o ':/[^"]*')
+        
+        # Find the corresponding comment line
+        line_num=$(grep -n "$path_line" "$zshrc_file" | head -1 | cut -d: -f1)
+        if [ -n "$line_num" ]; then
+            comment_line=$(sed -n "$((line_num-1))p" "$zshrc_file")
+            if [[ $comment_line == \#* ]]; then
+                echo "$comment_line" >> "$temp_file"
+            fi
+            echo "$path_line" >> "$temp_file"
+        fi
+    done < /tmp/unique_paths.txt
+    
+    rm /tmp/unique_paths.txt
+    
+    # Copy any remaining non-PATH lines after the last PATH entry
+    last_path_line=$(grep -n "export PATH" "$zshrc_file" | tail -1 | cut -d: -f1)
+    if [ -n "$last_path_line" ]; then
+        tail -n +$((last_path_line+1)) "$zshrc_file" | grep -v "export PATH" >> "$temp_file"
+    fi
+    
+    # Replace the original file if changes were made
+    if ! diff -q "$temp_file" "$zshrc_file" > /dev/null 2>&1; then
+        mv "$temp_file" "$zshrc_file"
+        show_success "Cleaned up duplicate PATH entries in .zshrc"
+    else
+        rm "$temp_file"
+        show_info "No duplicate PATH entries found"
+    fi
+}
