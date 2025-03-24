@@ -1,15 +1,62 @@
 #!/bin/bash
+
+# ================================ VARIABLES ================================
 # Define colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+CHECK_MARK="\033[0;32m✓\033[0m"
+X_MARK="\033[0;31m✗\033[0m"
+ARROW="\033[0;34m➜\033[0m"
 
 # Global variable to track if update has been run
 UPDATE_RUN=false
+# Define supported OS array
+SUPPORTED_OS=(
+    "ubuntu"
+    "debian"
+    "parrot os"
+    "kali"
+    "linux mint"
+    "elementary os"
+)
+# Define version
+VERSION="1.0.0"
+# ================================ END VARIABLES ================================
 
 # ================================ FUNCTIONS ================================
 # ================================ HELPER FUNCTIONS ================================
+# Add version function
+show_version() {
+    echo -e "${GREEN}Script Version: ${VERSION}${NC}"
+}
+
+# Add help function
+show_help() {
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  -v, --version     Show script version"
+    echo "  -h, --help        Show this help message"
+}
+
+# Functions to show different status
+show_success() {
+    local message="$1"
+    echo -e "${CHECK_MARK} ${GREEN}${message}${NC}"
+}
+
+show_error() {
+    local message="$1"
+    echo -e "${X_MARK} ${RED}${message}${NC}"
+}
+
+show_info() {
+    local message="$1"
+    echo -e "${ARROW} ${message}"
+}
+
 # Function to detect OS and package manager
+# Example: detect_os
 detect_os() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -63,6 +110,7 @@ detect_os() {
 }
 
 # Function to run update if not already run
+# Example: run_update
 run_update() {
     if [ "$UPDATE_RUN" = false ]; then
         echo "Updating package lists..."
@@ -72,6 +120,7 @@ run_update() {
 }
 
 # Function to add PATH to .zshrc
+# Example: add_path_to_zshrc "Go user bin PATH" "export PATH=\"\$PATH:\$HOME/.go/bin\""
 add_path_to_zshrc() {
     local path_comment="$1"
     local path_export="$2"
@@ -81,21 +130,34 @@ add_path_to_zshrc() {
         # Add newline and PATH after the first PATH export line
         sed -i '/# export PATH=/a\# '"$path_comment"'\n'"$path_export" ~/.zshrc
     else
-        echo -e "${GREEN}$path_comment already configured in .zshrc${NC}"
+        show_info "$path_comment already configured in .zshrc"
     fi
+}
+
+# Function to check if OS is supported
+# Example: is_supported_os "ubuntu"
+is_supported_os() {
+    local check_os="$1"
+    for os in "${SUPPORTED_OS[@]}"; do
+        if [ "$os" = "$check_os" ]; then
+            return 0 # true
+        fi
+    done
+    return 1 # false
 }
 
 # ================================ INSTALL FUNCTIONS ================================
 # Function to install zsh
+# Example: install_zsh
 install_zsh() {
     # Check if zsh installed
     if ! command -v zsh &> /dev/null; then
-        echo "Installing zsh"
+        show_info "Installing zsh"
         # Install zsh based on package manager
         run_update
         sudo $INSTALL_CMD zsh
     else
-        echo -e "${GREEN}zsh is already installed${NC}"
+        show_success "zsh is already installed"
     fi
     # Change default shell to zsh
     echo "Y" | sudo chsh -s $(which zsh)
@@ -149,159 +211,240 @@ install_oh_my_zsh() {
     fi
 }
 
-# Function install language
-install_language() {
+# Function to install Go
+install_go() {
     # Install golang
     # Check if golang installed
     if ! command -v go &> /dev/null; then
-        echo "Installing Golang"
-        case $OS in
-            "ubuntu"|"debian"|"parrot os"|"kali"|"linux mint"|"elementary os")
-                run_update
-                sudo $INSTALL_CMD golang
-                ;;
-            *)
-                echo -e "${RED}Unsupported OS for Golang installation${NC}"
-                ;;
-        esac
+        show_info "Installing Golang"
+        run_update
+        sudo $INSTALL_CMD golang
     else
-        echo -e "${GREEN}Golang is already installed${NC}"
+        show_success "Golang is already installed"
     fi
 
     # Add Go PATHs to .zshrc
     add_path_to_zshrc "Go user bin PATH" "export PATH=\"\$PATH:\$HOME/.go/bin\""
     add_path_to_zshrc "Go system bin PATH" "export PATH=\"\$PATH:/usr/local/go/bin\""
+}
 
+# Function to install Rust
+install_rust() {
     # Install rust
     # Check if rust installed
     if ! command -v rustc &> /dev/null; then
-        echo "Installing Rust"
-        case $OS in
-            "ubuntu"|"debian"|"parrot os"|"kali"|"linux mint"|"elementary os")
-                run_update
-                sudo $INSTALL_CMD rustc
-                ;;
-            *)
-                echo -e "${RED}Unsupported OS for Rust installation${NC}"
-                ;;
-        esac
+        show_info "Installing Rust"
+        run_update
+        sudo $INSTALL_CMD rustc
     else
-        echo -e "${GREEN}Rust is already installed${NC}"
+        show_success "Rust is already installed"
     fi
 
     # Add Rust PATH to .zshrc
     add_path_to_zshrc "Rust PATH" "export PATH=\"\$PATH:\$HOME/.cargo/bin\""
+}
 
+# Function to install Python
+install_python() {
     # Install python
-    # Check if python installed
-    if ! command -v python &> /dev/null; then
-        echo "Installing Python"
-        case $OS in
-            "ubuntu"|"debian"|"parrot os"|"kali"|"linux mint"|"elementary os")
-                run_update
-                sudo $INSTALL_CMD python3 python3-pip
-                ;;
-            *)
-                echo -e "${RED}Unsupported OS for Python installation${NC}"
-                ;;
-        esac
+    # Check if python or python3 installed
+    if ! command -v python &> /dev/null && ! command -v python3 &> /dev/null; then
+        show_info "Installing Python"
+        run_update
+        sudo $INSTALL_CMD python3 python3-pip
     else
-        echo -e "${GREEN}Python is already installed${NC}"
+        show_success "Python is already installed"
     fi
 
     # Add Python PATH to .zshrc
     add_path_to_zshrc "Python local bin PATH" "export PATH=\"\$PATH:\$HOME/.local/bin\""
+}
 
+# Function to install Node
+install_node() {
     # Install node
     # Check if node installed
     if ! command -v node &> /dev/null; then
-        echo "Installing Node.js"
-        case $OS in
-            "ubuntu"|"debian"|"parrot os"|"kali"|"linux mint"|"elementary os")
-                run_update
-                sudo $INSTALL_CMD nodejs npm
-                ;;
-            *)
-                echo -e "${RED}Unsupported OS for Node.js installation${NC}"
-                ;;
-        esac
+        show_info "Installing Node.js"
+        run_update
+        sudo $INSTALL_CMD nodejs npm
     else
-        echo -e "${GREEN}Node is already installed${NC}"
+        show_success "Node.js is already installed"
     fi
 
     # Add Node PATH to .zshrc
     add_path_to_zshrc "Node PATH" "export PATH=\"\$PATH:\$HOME/.node/bin\""
 }
 
-# Function install library
-install_library() {
-    # Install yarn
-    # Check if yarn installed
-    if ! command -v yarn &> /dev/null; then
-        echo "Installing Yarn"
-        case $OS in
-            "ubuntu"|"debian"|"parrot os"|"kali"|"linux mint"|"elementary os")
-                run_update
-                sudo $INSTALL_CMD yarn
-                ;;
-            *)
-                echo -e "${RED}Unsupported OS for Yarn installation${NC}"
-                ;;
-        esac
-    else
-        echo -e "${GREEN}Yarn is already installed${NC}"
+# Function to install library go
+# Example: install_go_library "github.com/OJ/gobuster/v3@latest"
+install_go_library() {
+    # Check if go installed
+    if ! command -v go &> /dev/null; then
+        show_info "Installing Golang"
+        install_go
     fi
+    # Install library go
+    # Check if library go installed
+    if ! command -v $1 &> /dev/null; then
+        # echo with name package not full path, example: "gobuster" not "github.com/OJ/gobuster/v3@latest"
+        package_name=$(echo $1 | rev | cut -d'/' -f1 | rev)
+        show_info "Installing $package_name"
+        go install $1
+    else
+        show_success "$1 is already installed"
+    fi
+}
 
+# Function to install library rust
+# Example: install_rust_library "cargo-audit"
+install_rust_library() {
+    # Check if rust installed
+    if ! command -v rustc &> /dev/null; then
+        show_info "Installing Rust"
+        install_rust
+    fi
+    # Install library rust
+    # Check if library rust installed
+    if ! command -v $1 &> /dev/null; then
+        show_info "Installing $1"
+        cargo install $1
+    else
+        show_success "$1 is already installed"
+    fi
+}
+
+# Function to install library python
+# Example: install_python_library "pip install sqlmap"
+install_python_library() {
+    # Check if python or python3 installed
+    if ! command -v python &> /dev/null && ! command -v python3 &> /dev/null; then
+        show_info "Installing Python"
+        install_python
+    fi
+    # Install library python
+    # Check if library python installed
+    if ! command -v $1 &> /dev/null; then
+        show_info "Installing $1"
+        pip install $1
+    else
+        show_success "$1 is already installed"
+    fi
+}
+
+# Function to install library node
+# Example: install_node_library "npm install -g sqlmap"
+install_node_library() {
+    # Check if node installed
+    if ! command -v node &> /dev/null; then
+        show_info "Installing Node.js"
+        install_node
+    fi
+    # Install library node
+    # Check if library node installed
+    if ! command -v $1 &> /dev/null; then
+        show_info "Installing $1"
+        npm install -g $1
+    else
+        show_success "$1 is already installed"
+    fi
+}
+
+# Install package manager
+install_package_manager() {
+    # Install yarn
+    # Check if yarn installed and supported os
+    if ! command -v yarn &> /dev/null; then
+        show_info "Installing Yarn"
+        install_node_library "yarn"
+    else
+        show_success "yarn is already installed"
+    fi
     # Add Yarn PATH to .zshrc
     add_path_to_zshrc "Yarn PATH" "export PATH=\"\$PATH:\$HOME/.yarn/bin\""
 
     # Install pip
-    # Check if pip installed
+    # Check if pip installed and supported os
     if ! command -v pip &> /dev/null; then
-        echo "Installing pip"
-        case $OS in
-            "ubuntu"|"debian"|"parrot os"|"kali"|"linux mint"|"elementary os")
-                run_update
-                sudo $INSTALL_CMD python3-pip
-                ;;
-            *)
-                echo -e "${RED}Unsupported OS for pip installation${NC}"
-                ;;
-        esac
+        show_info "Installing pip"
+        install_python_library "pip"
     else
-        echo -e "${GREEN}Pip is already installed${NC}"
+        show_success "pip is already installed"
     fi
-
     # Add Pip PATH to .zshrc
     add_path_to_zshrc "Pip PATH" "export PATH=\"\$PATH:\$HOME/.local/bin\""
 }
 
-# Main function
-main() {
-    # Detect OS and package manager
-    detect_os
 
-    # Run initial update
+# Function install language
+install_language() {
+    install_go
+    install_rust
+    install_python
+    install_node
+}
+
+# Function to install library multiple language
+# Example: install_library "go" "gobuster"
+install_library() {
+    # Install library multiple language
+    case $1 in
+        "go")
+            install_go_library $2
+            ;;
+        "rust")
+            install_rust_library $2
+            ;;
+        "python")
+            install_python_library $2
+            ;;
+        "node")
+            install_node_library $2
+            ;;
+        "all")
+            show_error "Please install language first"
+            exit 1
+            ;;
+    esac
+}
+
+# Main function
+# Modify main function to handle arguments
+main() {
+    # Handle command line arguments
+    case "$1" in
+        -v|--version)
+            show_version
+            exit 0
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+    esac
+
+    # Original main function code
+    detect_os
+    # check if os is supported
+    if ! is_supported_os $OS; then
+        show_error "Unsupported OS"
+        exit 1
+    fi
     run_update
 
-    # Install zsh
+    # Install required packages
     install_zsh
-
-    # Install Oh-My-Zsh
     install_oh_my_zsh
-
-    # Install language
     install_language
+    install_package_manager
 
-    # Install library
-    install_library
-
-    # Source .zshrc to apply changes
-    echo "Applying changes to current shell..."
+    # Apply changes to current shell
+    show_info "Applying changes to current shell..."
     source ~/.zshrc
 }
+
 # ================================ END FUNCTIONS ================================
 
 # ================================ MAIN FUNCTION ================================
 # Run the main function
-main
+main "$@"
