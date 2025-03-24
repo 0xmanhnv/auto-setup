@@ -450,14 +450,6 @@ install_language() {
 
 # Function bootstrap
 bootstrap() {
-    # Check /usr/sbin in PATH
-    if ! command -v /usr/sbin &> /dev/null; then
-        show_info "Adding /usr/sbin to PATH"
-        add_path_to_zshrc "usr/sbin PATH" "export PATH=\"\$PATH:/usr/sbin\""
-    else
-        show_success "/usr/sbin is already in PATH"
-    fi
-
     # Set timezone
     set_timezone
 
@@ -484,6 +476,14 @@ main() {
     install_oh_my_zsh
     install_language
     install_package_manager
+
+    # Check exists folder /usr/sbin in .zshrc
+    if ! grep -q "/usr/sbin" "$HOME/.zshrc"; then
+        show_info "Adding /usr/sbin to PATH"
+        add_path_to_zshrc "usr/sbin PATH" "export PATH=\"\$PATH:/usr/sbin\""
+    else
+        show_success "/usr/sbin folder already exists"
+    fi
 
     # Apply changes to current shell
     show_info "Setup completed successfully!"
