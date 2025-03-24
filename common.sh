@@ -59,6 +59,19 @@ show_info() {
     echo -e "${ARROW} ${message}"
 }
 
+# Function to set timezone
+set_timezone() {
+    show_info "Setting timezone to $TIMEZONE"
+    if command -v timedatectl &> /dev/null; then
+        sudo timedatectl set-timezone $TIMEZONE
+    else
+        # Fallback method for systems without timedatectl
+        echo "$TIMEZONE" | sudo tee /etc/timezone
+        sudo ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
+    fi
+    show_success "Timezone set to $TIMEZONE"
+}
+
 # Function to detect OS and package manager
 # Example: detect_os
 detect_os() {
@@ -434,8 +447,9 @@ main() {
         show_error "Unsupported OS"
         exit 1
     fi
+    
     # Set timezone
-    sudo timedatectl set-timezone $TIMEZONE
+    set_timezone
     
     run_update
 
