@@ -12,6 +12,7 @@ ARROW="\033[0;34m➜\033[0m"
 # Global variable to track if update has been run
 UPDATE_RUN=false
 # Define supported OS array
+OS=""
 SUPPORTED_OS=(
     "ubuntu"
     "debian"
