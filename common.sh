@@ -165,12 +165,11 @@ is_supported_os() {
     # Convert to lowercase and remove extra spaces
     check_os=$(echo "$check_os" | tr '[:upper:]' '[:lower:]' | tr -s ' ')
     echo "Checking OS: '$check_os'"
-    for os in "${SUPPORTED_OS[@]}"; do
-        echo "Comparing with: '$os'"
-        if [ "$os" = "$check_os" ]; then
-            return 0 # true
-        fi
-    done
+    
+    # Check if OS exists in supported list
+    if printf '%s\n' "${SUPPORTED_OS[@]}" | grep -q "^$check_os"; then
+        return 0 # true
+    fi
     return 1 # false
 }
 
