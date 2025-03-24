@@ -34,6 +34,7 @@ Scripts for automatically installing and configuring development environment on 
 - Automatically configure PATH in `.zshrc`
 - Set timezone (default: Asia/Ho_Chi_Minh)
 - Support for multiple Linux distributions
+- Works both in standard environments and Docker containers
 
 ## System Requirements
 
@@ -45,9 +46,12 @@ Scripts for automatically installing and configuring development environment on 
   - Linux Mint
   - Elementary OS
 - Internet connection
-- Regular user with sudo privileges
+- Regular user with sudo privileges (in standard environment)
+- Or root access (in Docker)
 
 ## Usage
+
+### Standard Environment
 
 1. Download the script:
    ```bash
@@ -68,27 +72,42 @@ Scripts for automatically installing and configuring development environment on 
    ./common.sh
    ```
 
-4. After installation:
-   - Either run `zsh` to start using your new shell
-   - Or restart your terminal to apply all changes
+### Docker Environment
+
+1. Inside your Dockerfile:
+   ```dockerfile
+   FROM ubuntu:latest
+   
+   COPY common.sh /root/common.sh
+   RUN chmod +x /root/common.sh && /root/common.sh
+   ```
+
+2. Or in a running container:
+   ```bash
+   docker cp common.sh container_name:/root/
+   docker exec container_name chmod +x /root/common.sh
+   docker exec container_name /root/common.sh
+   ```
 
 ## What Happens During Installation
 
 The script will:
 1. Detect your operating system and package manager
-2. Update package repositories
-3. Set your timezone
-4. Install essential tools (Git, curl, wget)
-5. Install ZSH and make it your default shell
-6. Install Oh-My-Zsh with useful plugins
-7. Install Go, Rust, Python, and Node.js
-8. Install Yarn and pip package managers
-9. Configure PATH environment variables in `.zshrc`
+2. Detect whether you're running in a Docker environment
+3. Update package repositories
+4. Set your timezone
+5. Install essential tools (Git, curl, wget)
+6. Install ZSH and make it your default shell
+7. Install Oh-My-Zsh with useful plugins
+8. Install Go, Rust, Python, and Node.js
+9. Install Yarn and pip package managers
+10. Configure PATH environment variables in `.zshrc`
 
 ## Important Notes
 
-- The script should be run as a regular user (not as root)
-- The script will prompt for your password when sudo is required
+- In standard environments: The script should be run as a regular user (not as root)
+- In Docker containers: The script will automatically run appropriately with root
+- The script will automatically detect if sudo is available and use it when needed
 - The script checks if components are already installed before installing them
 - Your existing `.zshrc` file will be backed up if changes are needed
 - The script will show detailed progress and success/error messages

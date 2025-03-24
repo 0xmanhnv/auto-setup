@@ -11,6 +11,8 @@ ARROW="\033[0;34m➜\033[0m"
 
 # Global variable to track if update has been run
 UPDATE_RUN=false
+# Flag to detect if running in Docker
+RUNNING_IN_DOCKER=false
 # Define supported OS array
 OS=""
 SUPPORTED_OS=(
@@ -60,15 +62,46 @@ show_info() {
     echo -e "${ARROW} ${message}"
 }
 
+# Function to check if running as root
+is_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        return 0 # true
+    else
+        return 1 # false
+    fi
+}
+
+# Function to handle command execution with or without sudo
+# Example: run_with_sudo "apt-get update"
+run_with_sudo() {
+    local cmd="$@"
+    
+    # If running as root, don't use sudo
+    if is_root; then
+        eval "$cmd"
+        return $?
+    fi
+    
+    # Check if sudo is available
+    if command -v sudo &> /dev/null; then
+        sudo $cmd
+        return $?
+    else
+        # If not running as root and sudo not available, show error
+        show_error "Neither running as root nor sudo available. Cannot execute: $cmd"
+        return 1
+    fi
+}
+
 # Function to set timezone
 set_timezone() {
     show_info "Setting timezone to $TIMEZONE"
     if command -v timedatectl &> /dev/null; then
-        sudo timedatectl set-timezone $TIMEZONE
+        run_with_sudo "timedatectl set-timezone $TIMEZONE"
     else
         # Fallback method for systems without timedatectl
-        echo "$TIMEZONE" | sudo tee /etc/timezone
-        sudo ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
+        echo "$TIMEZONE" | run_with_sudo "tee /etc/timezone"
+        run_with_sudo "ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime"
     fi
     show_success "Timezone set to $TIMEZONE"
 }
@@ -132,7 +165,7 @@ detect_os() {
 run_update() {
     if [ "$UPDATE_RUN" = false ]; then
         echo "Updating package lists..."
-        sudo $UPDATE_CMD
+        run_with_sudo "$UPDATE_CMD"
         UPDATE_RUN=true
     fi
 }
@@ -212,7 +245,7 @@ install_zsh() {
         show_info "Installing zsh"
         # Install zsh based on package manager
         run_update
-        sudo $INSTALL_CMD zsh
+        run_with_sudo "$INSTALL_CMD zsh"
         show_success "zsh installed successfully"
     else
         show_success "zsh is already installed"
@@ -221,7 +254,7 @@ install_zsh() {
     # Change default shell to zsh
     show_info "Changing default shell to zsh"
     if [ "$SHELL" != "$(which zsh)" ]; then
-        sudo chsh -s $(which zsh) $USER
+        run_with_sudo "chsh -s $(which zsh) $USER"
         show_success "Default shell changed to zsh"
     else
         show_success "zsh is already the default shell"
@@ -270,7 +303,7 @@ install_git() {
     if ! command -v git &> /dev/null; then
         show_info "Installing Git (required for Oh-My-Zsh)"
         run_update
-        sudo $INSTALL_CMD git
+        run_with_sudo "$INSTALL_CMD git"
         
         if [ $? -ne 0 ]; then
             show_error "Failed to install Git"
@@ -355,7 +388,7 @@ install_go() {
     if ! command -v go &> /dev/null; then
         show_info "Installing Golang"
         run_update
-        sudo $INSTALL_CMD golang
+        run_with_sudo "$INSTALL_CMD golang"
     else
         show_success "Golang is already installed"
     fi
@@ -370,7 +403,7 @@ install_curl() {
     # Check if curl installed
     if ! command -v curl &> /dev/null; then
         show_info "Installing curl"
-        sudo $INSTALL_CMD curl
+        run_with_sudo "$INSTALL_CMD curl"
     else
         show_success "curl is already installed"
     fi
@@ -381,7 +414,7 @@ install_wget() {
     # Check if wget installed
     if ! command -v wget &> /dev/null; then
         show_info "Installing wget"
-        sudo $INSTALL_CMD wget
+        run_with_sudo "$INSTALL_CMD wget"
     fi
 }
 
@@ -392,7 +425,7 @@ install_rust() {
     if ! command -v rustc &> /dev/null; then
         show_info "Installing Rust"
         run_update
-        sudo $INSTALL_CMD rustc
+        run_with_sudo "$INSTALL_CMD rustc"
     else
         show_success "Rust is already installed"
     fi
@@ -408,7 +441,7 @@ install_python() {
     if ! command -v python &> /dev/null && ! command -v python3 &> /dev/null; then
         show_info "Installing Python"
         run_update
-        sudo $INSTALL_CMD python3 python3-pip
+        run_with_sudo "$INSTALL_CMD python3 python3-pip"
     else
         show_success "Python is already installed"
     fi
@@ -424,7 +457,7 @@ install_node() {
     if ! command -v node &> /dev/null; then
         show_info "Installing Node.js"
         run_update
-        sudo $INSTALL_CMD nodejs npm
+        run_with_sudo "$INSTALL_CMD nodejs npm"
     else
         show_success "Node.js is already installed"
     fi
@@ -613,12 +646,20 @@ main() {
         exit 1
     fi
 
-    # Check if running with sudo
-    # if [ "$EUID" -eq 0 ]; then 
-    #     show_error "Please do not run this script as root"
-    #     show_info "Run this script without sudo: ./$(basename $0)"
-    #     exit 1
-    # fi
+    # Detect environment (Docker or normal)
+    if [ -f /.dockerenv ] || grep -q 'docker\|lxc' /proc/1/cgroup 2>/dev/null; then
+        show_info "Docker environment detected, running in container mode"
+        RUNNING_IN_DOCKER=true
+    else
+        RUNNING_IN_DOCKER=false
+    fi
+
+    # Check if running as root when not in Docker
+    if is_root && [ "$RUNNING_IN_DOCKER" = false ]; then
+        show_error "Please do not run this script as root when not in Docker"
+        show_info "Run this script without sudo: ./$(basename $0)"
+        exit 1
+    fi
 
     # Show start message
     show_info "Starting setup on $OS $VERSION..."
